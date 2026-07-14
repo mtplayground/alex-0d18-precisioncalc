@@ -6,6 +6,7 @@ import {
   writePersistedCalculatorState,
   type PersistedCalculatorState,
   type PersistedHistoryEntry,
+  type PersistedModePreferences,
 } from '../../lib/storage';
 import {
   createEmptyMemoryRegister,
@@ -15,6 +16,7 @@ import {
 } from '../../lib/memory';
 import { CoreArithmeticButtonGrid } from '../buttons/CoreArithmeticButtonGrid';
 import { MemoryRegisterControls } from '../buttons/MemoryRegisterControls';
+import { ModeToggleControls } from '../buttons/ModeToggleControls';
 import { ScientificFunctionCluster } from '../buttons/ScientificFunctionCluster';
 import { HistoryTrail, type HistoryTrailEntry } from '../display/HistoryTrail';
 import { PrimaryDisplay } from '../display/PrimaryDisplay';
@@ -58,15 +60,16 @@ export function AppShell() {
   const [persistentState] = useState(loadPersistentShellState);
   const [historyEntries] = useState(persistentState.history);
   const [memoryRegister, setMemoryRegister] = useState(persistentState.memory);
+  const [modePreferences, setModePreferences] = useState(persistentState.preferences);
 
   useEffect(() => {
-    persistShellState(historyEntries, memoryRegister);
-  }, [historyEntries, memoryRegister]);
+    persistShellState(historyEntries, memoryRegister, modePreferences);
+  }, [historyEntries, memoryRegister, modePreferences]);
 
   return (
     <main className="min-h-dvh bg-zinc-950 text-zinc-50">
       <div className="mx-auto flex min-h-dvh w-full max-w-7xl flex-col px-4 py-4 sm:px-6 lg:px-8">
-        <header className="flex items-center justify-between border-b border-white/10 pb-3">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
               Scientific Calculator
@@ -75,10 +78,16 @@ export function AppShell() {
               Precision workbench
             </h1>
           </div>
-          <div className="grid grid-cols-2 gap-1 rounded border border-white/10 bg-zinc-900 p-1 text-xs font-semibold text-zinc-300">
-            <span className="rounded bg-cyan-400 px-2 py-1 text-zinc-950">DEG</span>
-            <span className="px-2 py-1">RAD</span>
-          </div>
+          <ModeToggleControls
+            angleMode={modePreferences.angleMode}
+            notationMode={modePreferences.notationMode}
+            onAngleModeChange={(angleMode) =>
+              setModePreferences((current) => ({ ...current, angleMode }))
+            }
+            onNotationModeChange={(notationMode) =>
+              setModePreferences((current) => ({ ...current, notationMode }))
+            }
+          />
         </header>
 
         <section className="grid flex-1 gap-4 py-4">
@@ -140,6 +149,7 @@ function ControlPanel({ children, title }: { children: React.ReactNode; title: s
 function loadPersistentShellState(): {
   history: PersistedHistoryEntry[];
   memory: MemoryRegisterState;
+  preferences: PersistedModePreferences;
 } {
   const storedState = readPersistedCalculatorState();
   const calculatorState = storedState.state;
@@ -148,14 +158,20 @@ function loadPersistentShellState(): {
   return {
     history: calculatorState.history.length > 0 ? calculatorState.history : seedHistoryEntries,
     memory: memory.ok ? memory.state : createEmptyMemoryRegister(),
+    preferences: calculatorState.preferences,
   };
 }
 
-function persistShellState(history: PersistedHistoryEntry[], memory: MemoryRegisterState): void {
+function persistShellState(
+  history: PersistedHistoryEntry[],
+  memory: MemoryRegisterState,
+  preferences: PersistedModePreferences,
+): void {
   const nextState: PersistedCalculatorState = {
     ...createDefaultCalculatorState(),
     history,
     memory: serializeMemoryRegister(memory),
+    preferences,
   };
 
   writePersistedCalculatorState(nextState);
