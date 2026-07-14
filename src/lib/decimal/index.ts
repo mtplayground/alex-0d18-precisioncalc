@@ -77,6 +77,10 @@ export function decimalToString(value: DecimalValue): string {
   return value.toString();
 }
 
+export function ensureFiniteDecimal(value: DecimalValue): DecimalResult {
+  return ensureFinite(value);
+}
+
 function ensureFinite(value: DecimalValue): DecimalResult {
   if (value.isFinite()) {
     return {

@@ -4,6 +4,21 @@ export {
   parseExpression,
   tokenizeExpression,
 } from './expression';
+export {
+  acosDecimal,
+  applyScientificFunction,
+  asinDecimal,
+  atanDecimal,
+  cosDecimal,
+  expDecimal,
+  lnDecimal,
+  log10Decimal,
+  powerDecimal,
+  rootDecimal,
+  sinDecimal,
+  sqrtDecimal,
+  tanDecimal,
+} from './scientific';
 
 export type {
   ArithmeticOperator,
@@ -17,3 +32,9 @@ export type {
   UnaryExpressionNode,
   UnaryOperator,
 } from './expression';
+export type {
+  ScientificErrorCode,
+  ScientificFunctionError,
+  ScientificFunctionName,
+  ScientificFunctionResult,
+} from './scientific';
