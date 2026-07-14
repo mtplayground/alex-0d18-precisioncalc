@@ -23,9 +23,9 @@ export function HistoryTrail({
   return (
     <section
       aria-label="Calculation history trail"
-      className="rounded-lg border border-white/10 bg-zinc-900 p-3 shadow-2xl shadow-black/30"
+      className="h-full min-h-0 overflow-hidden rounded-lg border border-white/10 bg-zinc-900 p-2 shadow-2xl shadow-black/30 sm:p-3"
     >
-      <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2">
         <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">History</h2>
         <span className="text-xs font-medium text-zinc-500">{entries.length} entries</span>
       </div>
@@ -33,7 +33,7 @@ export function HistoryTrail({
       {visibleEntries.length > 0 ? (
         <ol className="divide-y divide-white/10">
           {visibleEntries.map((entry) => (
-            <li className="grid gap-2 py-3 sm:grid-cols-[minmax(0,1fr)_auto]" key={entry.id}>
+            <li className="grid gap-2 py-1.5 sm:grid-cols-[minmax(0,1fr)_auto]" key={entry.id}>
               <button
                 aria-label={`Recall expression ${entry.expression}`}
                 className="min-w-0 text-left font-mono text-sm text-zinc-300 transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300"
@@ -50,7 +50,7 @@ export function HistoryTrail({
 
               <button
                 aria-label={`Reuse result ${entry.result}`}
-                className="justify-self-end rounded border border-cyan-300/40 bg-cyan-300/10 px-3 py-2 text-right font-mono text-sm font-semibold text-cyan-100 transition hover:bg-cyan-300/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300"
+                className="justify-self-end rounded border border-cyan-300/40 bg-cyan-300/10 px-3 py-1.5 text-right font-mono text-sm font-semibold text-cyan-100 transition hover:bg-cyan-300/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300"
                 onClick={() => onReuseResult?.(entry)}
                 type="button"
               >
@@ -60,7 +60,7 @@ export function HistoryTrail({
           ))}
         </ol>
       ) : (
-        <div className="py-4 text-right font-mono text-sm text-zinc-600">0</div>
+        <div className="py-2 text-right font-mono text-sm text-zinc-600">0</div>
       )}
     </section>
   );

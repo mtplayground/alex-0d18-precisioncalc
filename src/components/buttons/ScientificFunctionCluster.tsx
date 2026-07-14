@@ -89,21 +89,24 @@ const buttonToneClass: Record<ScientificFunctionGroup['tone'], string> = {
 
 export function ScientificFunctionCluster({ onFunctionPress }: ScientificFunctionClusterProps) {
   return (
-    <section aria-label="Scientific function buttons" className="grid gap-2.5">
+    <section
+      aria-label="Scientific function buttons"
+      className="grid h-full min-h-0 grid-rows-[repeat(4,minmax(0,1fr))] gap-1.5 sm:gap-2.5"
+    >
       {scientificFunctionGroups.map((group) => (
         <section
           aria-label={`${group.label} functions`}
-          className={`rounded-[0.45rem] border border-white/10 border-l-4 p-2.5 ${groupToneClass[group.tone]}`}
+          className={`flex min-h-0 flex-col rounded-[0.45rem] border border-white/10 border-l-4 p-1.5 sm:p-2.5 ${groupToneClass[group.tone]}`}
           key={group.label}
         >
-          <h3 className="mb-2 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-zinc-400">
+          <h3 className="mb-1 shrink-0 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-zinc-400 sm:mb-2">
             {group.label}
           </h3>
-          <div className="grid grid-cols-3 gap-1.5 lg:grid-cols-2 xl:grid-cols-3">
+          <div className="grid min-h-0 flex-1 grid-cols-3 gap-1 lg:grid-cols-2 xl:grid-cols-3">
             {group.buttons.map((button) => (
               <button
                 aria-label={button.ariaLabel}
-                className={`min-h-10 rounded-[0.4rem] border bg-zinc-950/80 px-2 font-mono text-sm font-semibold transition active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 ${buttonToneClass[group.tone]}`}
+                className={`min-h-0 rounded-[0.4rem] border bg-zinc-950/80 px-1 font-mono text-xs font-semibold transition active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 sm:px-2 sm:text-sm ${buttonToneClass[group.tone]}`}
                 key={button.value}
                 onClick={() => onFunctionPress?.(button.value)}
                 type="button"
