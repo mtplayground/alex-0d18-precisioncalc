@@ -13,6 +13,7 @@ import {
   serializeMemoryRegister,
   type MemoryRegisterState,
 } from '../../lib/memory';
+import { CoreArithmeticButtonGrid } from '../buttons/CoreArithmeticButtonGrid';
 import { HistoryTrail, type HistoryTrailEntry } from '../display/HistoryTrail';
 import { PrimaryDisplay } from '../display/PrimaryDisplay';
 
@@ -50,14 +51,8 @@ const scientificZones = [
 
 const memoryZones = ['MC', 'MR', 'M+', 'M-'];
 
-const keypadZones = [
-  ['7', '8', '9', '/'],
-  ['4', '5', '6', 'x'],
-  ['1', '2', '3', '-'],
-  ['0', '.', '=', '+'],
-];
-
 const handleHistoryEntry = () => undefined;
+const handleCoreArithmeticButton = () => undefined;
 
 export function AppShell() {
   const [persistentState] = useState(loadPersistentShellState);
@@ -127,14 +122,8 @@ export function AppShell() {
                 </ControlPanel>
               </div>
 
-              <ControlPanel title="Keypad">
-                <div className="grid h-full min-h-72 grid-cols-4 gap-2">
-                  {keypadZones.flat().map((label) => (
-                    <ShellKey key={label} tone={isOperator(label) ? 'operator' : 'primary'}>
-                      {label}
-                    </ShellKey>
-                  ))}
-                </div>
+              <ControlPanel title="Arithmetic">
+                <CoreArithmeticButtonGrid onButtonPress={handleCoreArithmeticButton} />
               </ControlPanel>
             </section>
           </div>
@@ -155,17 +144,9 @@ function ControlPanel({ children, title }: { children: React.ReactNode; title: s
   );
 }
 
-function ShellKey({
-  children,
-  tone,
-}: {
-  children: React.ReactNode;
-  tone: 'primary' | 'secondary' | 'operator' | 'memory';
-}) {
+function ShellKey({ children, tone }: { children: React.ReactNode; tone: 'secondary' | 'memory' }) {
   const toneClass = {
-    primary: 'border-zinc-700 bg-zinc-800 text-white',
     secondary: 'border-zinc-700 bg-zinc-950 text-zinc-200',
-    operator: 'border-cyan-300/60 bg-cyan-300 text-zinc-950',
     memory: 'border-amber-300/50 bg-amber-300/15 text-amber-100',
   }[tone];
 
@@ -178,10 +159,6 @@ function ShellKey({
       {children}
     </button>
   );
-}
-
-function isOperator(label: string) {
-  return ['/', 'x', '-', '+', '='].includes(label);
 }
 
 function loadPersistentShellState(): {
