@@ -4,6 +4,8 @@
 
 :root {
   color-scheme: dark;
+  background: #09090b;
+  color: #fafafa;
   font-family:
     Inter,
     ui-sans-serif,
@@ -17,6 +19,16 @@
 body {
   margin: 0;
   min-width: 320px;
+  min-height: 100vh;
+  background: #09090b;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 button,
@@ -24,4 +36,13 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+::selection {
+  background: #67e8f9;
+  color: #09090b;
 }
