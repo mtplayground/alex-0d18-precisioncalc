@@ -36,5 +36,6 @@ export type {
   ScientificErrorCode,
   ScientificFunctionError,
   ScientificFunctionName,
+  ScientificFunctionOptions,
   ScientificFunctionResult,
 } from './scientific';
