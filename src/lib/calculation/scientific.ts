@@ -1,10 +1,16 @@
 import { DecimalEngine, ensureFiniteDecimal } from '../decimal';
 import type { DecimalResult, DecimalValue } from '../decimal';
+import { angleFromRadians, angleToRadians } from '../formatting';
+import type { AngleMode } from '../formatting';
 
 export type ScientificFunctionName =
   'sin' | 'cos' | 'tan' | 'asin' | 'acos' | 'atan' | 'log' | 'ln' | 'exp' | 'pow' | 'sqrt' | 'root';
 
 export type ScientificErrorCode = 'domain-error' | 'invalid-arity' | 'decimal-error';
+
+export interface ScientificFunctionOptions {
+  angleMode?: AngleMode;
+}
 
 export interface ScientificFunctionError {
   code: ScientificErrorCode;
@@ -24,20 +30,21 @@ export type ScientificFunctionResult =
 export function applyScientificFunction(
   name: ScientificFunctionName,
   args: DecimalValue[],
+  options: ScientificFunctionOptions = {},
 ): ScientificFunctionResult {
   switch (name) {
     case 'sin':
-      return unaryFunction(name, args, sinDecimal);
+      return unaryFunction(name, args, (value) => sinDecimal(value, options));
     case 'cos':
-      return unaryFunction(name, args, cosDecimal);
+      return unaryFunction(name, args, (value) => cosDecimal(value, options));
     case 'tan':
-      return unaryFunction(name, args, tanDecimal);
+      return unaryFunction(name, args, (value) => tanDecimal(value, options));
     case 'asin':
-      return unaryFunction(name, args, asinDecimal);
+      return unaryFunction(name, args, (value) => asinDecimal(value, options));
     case 'acos':
-      return unaryFunction(name, args, acosDecimal);
+      return unaryFunction(name, args, (value) => acosDecimal(value, options));
     case 'atan':
-      return unaryFunction(name, args, atanDecimal);
+      return unaryFunction(name, args, (value) => atanDecimal(value, options));
     case 'log':
       return unaryFunction(name, args, log10Decimal);
     case 'ln':
@@ -53,36 +60,81 @@ export function applyScientificFunction(
   }
 }
 
-export function sinDecimal(value: DecimalValue): ScientificFunctionResult {
-  return decimalOperationToScientific(() => value.sin());
+export function sinDecimal(
+  value: DecimalValue,
+  options: ScientificFunctionOptions = {},
+): ScientificFunctionResult {
+  const radians = angleToScientificRadians(value, options);
+
+  if (!radians.ok) {
+    return radians;
+  }
+
+  return decimalOperationToScientific(() => radians.value.sin());
 }
 
-export function cosDecimal(value: DecimalValue): ScientificFunctionResult {
-  return decimalOperationToScientific(() => value.cos());
+export function cosDecimal(
+  value: DecimalValue,
+  options: ScientificFunctionOptions = {},
+): ScientificFunctionResult {
+  const radians = angleToScientificRadians(value, options);
+
+  if (!radians.ok) {
+    return radians;
+  }
+
+  return decimalOperationToScientific(() => radians.value.cos());
 }
 
-export function tanDecimal(value: DecimalValue): ScientificFunctionResult {
-  return decimalOperationToScientific(() => value.tan());
+export function tanDecimal(
+  value: DecimalValue,
+  options: ScientificFunctionOptions = {},
+): ScientificFunctionResult {
+  const radians = angleToScientificRadians(value, options);
+
+  if (!radians.ok) {
+    return radians;
+  }
+
+  return decimalOperationToScientific(() => radians.value.tan());
 }
 
-export function asinDecimal(value: DecimalValue): ScientificFunctionResult {
+export function asinDecimal(
+  value: DecimalValue,
+  options: ScientificFunctionOptions = {},
+): ScientificFunctionResult {
   if (!isWithinInclusive(value, -1, 1)) {
     return domainError('asin input must be between -1 and 1.');
   }
 
-  return decimalOperationToScientific(() => value.asin());
+  return decimalOperationToScientific(() => {
+    const radians = value.asin();
+    return angleFromScientificRadians(radians, options);
+  });
 }
 
-export function acosDecimal(value: DecimalValue): ScientificFunctionResult {
+export function acosDecimal(
+  value: DecimalValue,
+  options: ScientificFunctionOptions = {},
+): ScientificFunctionResult {
   if (!isWithinInclusive(value, -1, 1)) {
     return domainError('acos input must be between -1 and 1.');
   }
 
-  return decimalOperationToScientific(() => value.acos());
+  return decimalOperationToScientific(() => {
+    const radians = value.acos();
+    return angleFromScientificRadians(radians, options);
+  });
 }
 
-export function atanDecimal(value: DecimalValue): ScientificFunctionResult {
-  return decimalOperationToScientific(() => value.atan());
+export function atanDecimal(
+  value: DecimalValue,
+  options: ScientificFunctionOptions = {},
+): ScientificFunctionResult {
+  return decimalOperationToScientific(() => {
+    const radians = value.atan();
+    return angleFromScientificRadians(radians, options);
+  });
 }
 
 export function log10Decimal(value: DecimalValue): ScientificFunctionResult {
@@ -189,6 +241,32 @@ function decimalResultToScientific(value: DecimalValue): ScientificFunctionResul
   }
 
   return decimalErrorToScientific(result);
+}
+
+function angleToScientificRadians(
+  value: DecimalValue,
+  options: ScientificFunctionOptions,
+): ScientificFunctionResult {
+  const result = angleToRadians(value, options.angleMode ?? 'rad');
+
+  if (result.ok) {
+    return result;
+  }
+
+  return decimalErrorToScientific(result);
+}
+
+function angleFromScientificRadians(
+  value: DecimalValue,
+  options: ScientificFunctionOptions,
+): DecimalValue {
+  const result = angleFromRadians(value, options.angleMode ?? 'rad');
+
+  if (result.ok) {
+    return result.value;
+  }
+
+  throw new Error(result.error.message);
 }
 
 function decimalErrorToScientific(result: DecimalResult): ScientificFunctionResult {
