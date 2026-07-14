@@ -182,9 +182,9 @@ export function AppShell() {
   }, [dispatchKeyboardAction]);
 
   return (
-    <main className="min-h-dvh bg-zinc-950 text-zinc-50">
-      <div className="mx-auto flex min-h-dvh w-full max-w-7xl flex-col px-4 py-4 sm:px-6 lg:px-8">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+    <main className="h-dvh overflow-hidden bg-zinc-950 text-zinc-50">
+      <div className="mx-auto grid h-dvh w-full max-w-7xl grid-rows-[auto_minmax(0,1fr)] px-2 py-2 sm:px-4 lg:px-6">
+        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-2">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
               Scientific Calculator
@@ -201,10 +201,11 @@ export function AppShell() {
           />
         </header>
 
-        <section className="grid flex-1 gap-4 py-4">
-          <div className="grid min-h-0 gap-4 lg:grid-rows-[auto_auto_minmax(0,1fr)]">
+        <section className="grid min-h-0 gap-2 overflow-hidden py-2">
+          <div className="grid h-full min-h-0 grid-rows-[minmax(3.5rem,0.5fr)_minmax(5rem,0.7fr)_minmax(0,3.1fr)] gap-2">
             <HistoryTrail
               entries={historyEntries.map(historyEntryToTrailEntry)}
+              maxVisible={2}
               onRecallEntry={handleHistoryEntry}
               onReuseResult={handleHistoryEntry}
             />
@@ -218,9 +219,9 @@ export function AppShell() {
 
             <section
               aria-label="Calculator controls"
-              className="grid min-h-0 gap-4 lg:grid-cols-[minmax(15rem,0.85fr)_minmax(18rem,1.15fr)]"
+              className="grid min-h-0 grid-cols-[minmax(8rem,0.78fr)_minmax(12rem,1.22fr)] gap-2 lg:grid-cols-[minmax(15rem,0.85fr)_minmax(18rem,1.15fr)]"
             >
-              <div className="grid gap-4">
+              <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-2 overflow-hidden">
                 <ControlPanel title="Scientific">
                   <ScientificFunctionCluster onFunctionPress={handleScientificFunction} />
                 </ControlPanel>
@@ -249,11 +250,11 @@ export function AppShell() {
 
 function ControlPanel({ children, title }: { children: React.ReactNode; title: string }) {
   return (
-    <section className="rounded-lg border border-white/10 bg-zinc-900 p-3 shadow-2xl shadow-black/30">
-      <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
+    <section className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-white/10 bg-zinc-900 p-2 shadow-2xl shadow-black/30 sm:p-3">
+      <h2 className="mb-2 shrink-0 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
         {title}
       </h2>
-      {children}
+      <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
     </section>
   );
 }

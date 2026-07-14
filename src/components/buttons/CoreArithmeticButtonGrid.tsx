@@ -151,12 +151,12 @@ export function CoreArithmeticButtonGrid({ onButtonPress }: CoreArithmeticButton
   return (
     <section
       aria-label="Core arithmetic buttons"
-      className="grid h-full min-h-[24rem] grid-cols-4 grid-rows-[repeat(5,minmax(3.75rem,1fr))] gap-2.5"
+      className="grid h-full min-h-0 grid-cols-4 grid-rows-[repeat(5,minmax(2.75rem,1fr))] gap-1.5 sm:gap-2.5"
     >
       {coreArithmeticButtons.map((button) => (
         <button
           aria-label={button.ariaLabel}
-          className={`min-h-16 rounded-[0.45rem] border px-2 font-mono text-2xl font-semibold tabular-nums transition active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 sm:text-3xl ${toneClass[button.tone]} ${
+          className={`min-h-0 rounded-[0.45rem] border px-2 font-mono text-xl font-semibold tabular-nums transition active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 sm:text-3xl ${toneClass[button.tone]} ${
             button.className ?? ''
           }`}
           key={button.value}
