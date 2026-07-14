@@ -1,6 +1,26 @@
+import { HistoryTrail, type HistoryTrailEntry } from '../display/HistoryTrail';
 import { PrimaryDisplay } from '../display/PrimaryDisplay';
 
-const historyRows = ['12 x 4', '48 + 7', '55 / 5'];
+const historyEntries: HistoryTrailEntry[] = [
+  {
+    id: 'history-3',
+    expression: '12 x 4 + 7',
+    result: '55',
+    timestamp: '09:42',
+  },
+  {
+    id: 'history-2',
+    expression: '48 + 7',
+    result: '55',
+    timestamp: '09:41',
+  },
+  {
+    id: 'history-1',
+    expression: '55 / 5',
+    result: '11',
+    timestamp: '09:40',
+  },
+];
 
 const scientificZones = [
   ['sin', 'cos', 'tan', 'log'],
@@ -15,6 +35,8 @@ const keypadZones = [
   ['1', '2', '3', '-'],
   ['0', '.', '=', '+'],
 ];
+
+const handleHistoryEntry = () => undefined;
 
 export function AppShell() {
   return (
@@ -35,8 +57,14 @@ export function AppShell() {
           </div>
         </header>
 
-        <section className="grid flex-1 gap-4 py-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <div className="grid min-h-0 gap-4 lg:grid-rows-[auto_minmax(0,1fr)]">
+        <section className="grid flex-1 gap-4 py-4">
+          <div className="grid min-h-0 gap-4 lg:grid-rows-[auto_auto_minmax(0,1fr)]">
+            <HistoryTrail
+              entries={historyEntries}
+              onRecallEntry={handleHistoryEntry}
+              onReuseResult={handleHistoryEntry}
+            />
+
             <PrimaryDisplay
               expression="12 x 4 + 7"
               pendingOperation="+"
@@ -81,31 +109,6 @@ export function AppShell() {
               </ControlPanel>
             </section>
           </div>
-
-          <aside
-            aria-label="Calculation history"
-            className="min-h-0 rounded-lg border border-white/10 bg-zinc-900 p-4 shadow-2xl shadow-black/30"
-          >
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-300">
-                History
-              </h2>
-              <span className="text-xs font-medium text-zinc-500">3 entries</span>
-            </div>
-            <ol className="mt-4 grid gap-3">
-              {historyRows.map((expression, index) => (
-                <li
-                  className="rounded border border-white/10 bg-zinc-950 px-3 py-3 font-mono text-sm text-zinc-300"
-                  key={expression}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span>{expression}</span>
-                    <span className="text-zinc-500">#{historyRows.length - index}</span>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </aside>
         </section>
       </div>
     </main>
