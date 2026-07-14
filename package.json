@@ -13,6 +13,7 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
+    "decimal.js": "10.6.0",
     "react": "19.2.7",
     "react-dom": "19.2.7"
   },

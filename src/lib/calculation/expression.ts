@@ -1,3 +1,13 @@
+import {
+  addDecimals,
+  createDecimal,
+  divideDecimals,
+  multiplyDecimals,
+  negateDecimal,
+  subtractDecimals,
+} from '../decimal';
+import type { DecimalValue } from '../decimal';
+
 export type ArithmeticOperator = '+' | '-' | '*' | '/';
 export type UnaryOperator = '+' | '-';
 
@@ -5,7 +15,7 @@ export type ExpressionNode = NumberNode | UnaryExpressionNode | BinaryExpression
 
 export interface NumberNode {
   type: 'number';
-  value: number;
+  value: DecimalValue;
   raw: string;
 }
 
@@ -24,6 +34,7 @@ export interface BinaryExpressionNode {
 
 export type ExpressionErrorCode =
   | 'empty-expression'
+  | 'decimal-error'
   | 'invalid-number'
   | 'invalid-token'
   | 'unexpected-token'
@@ -50,7 +61,7 @@ export type ParseExpressionResult =
 export type EvaluationResult =
   | {
       ok: true;
-      value: number;
+      value: DecimalValue;
       ast: ExpressionNode;
     }
   | {
@@ -62,7 +73,7 @@ type Token = NumberToken | OperatorToken | LeftParenToken | RightParenToken | En
 
 interface NumberToken {
   type: 'number';
-  value: number;
+  value: DecimalValue;
   raw: string;
   position: number;
 }
@@ -405,7 +416,7 @@ class ExpressionParser {
 type NodeEvaluationResult =
   | {
       ok: true;
-      value: number;
+      value: DecimalValue;
     }
   | {
       ok: false;
@@ -414,7 +425,10 @@ type NodeEvaluationResult =
 
 function evaluateNode(node: ExpressionNode): NodeEvaluationResult {
   if (node.type === 'number') {
-    return finiteResult(node.value, 0);
+    return {
+      ok: true,
+      value: node.value,
+    };
   }
 
   if (node.type === 'unary') {
@@ -424,7 +438,7 @@ function evaluateNode(node: ExpressionNode): NodeEvaluationResult {
       return value;
     }
 
-    return finiteResult(node.operator === '-' ? -value.value : value.value, 0);
+    return node.operator === '-' ? decimalToEvaluationResult(negateDecimal(value.value), 0) : value;
   }
 
   const left = evaluateNode(node.left);
@@ -439,40 +453,54 @@ function evaluateNode(node: ExpressionNode): NodeEvaluationResult {
     return right;
   }
 
-  if (node.operator === '/' && right.value === 0) {
+  return decimalToEvaluationResult(applyOperator(node.operator, left.value, right.value), 0);
+}
+
+function applyOperator(
+  operator: ArithmeticOperator,
+  left: DecimalValue,
+  right: DecimalValue,
+): ReturnType<typeof addDecimals> {
+  switch (operator) {
+    case '+':
+      return addDecimals(left, right);
+    case '-':
+      return subtractDecimals(left, right);
+    case '*':
+      return multiplyDecimals(left, right);
+    case '/':
+      return divideDecimals(left, right);
+  }
+}
+
+function decimalToEvaluationResult(
+  decimalResult: ReturnType<typeof addDecimals>,
+  position: number,
+): NodeEvaluationResult {
+  if (decimalResult.ok) {
     return {
-      ok: false,
-      error: createError('divide-by-zero', 'Cannot divide by zero.', 0),
+      ok: true,
+      value: decimalResult.value,
     };
   }
 
-  return finiteResult(applyOperator(node.operator, left.value, right.value), 0);
-}
-
-function applyOperator(operator: ArithmeticOperator, left: number, right: number): number {
-  switch (operator) {
-    case '+':
-      return left + right;
-    case '-':
-      return left - right;
-    case '*':
-      return left * right;
-    case '/':
-      return left / right;
-  }
-}
-
-function finiteResult(value: number, position: number): NodeEvaluationResult {
-  if (Number.isFinite(value)) {
+  if (decimalResult.error.code === 'divide-by-zero') {
     return {
-      ok: true,
-      value,
+      ok: false,
+      error: createError('divide-by-zero', decimalResult.error.message, position),
+    };
+  }
+
+  if (decimalResult.error.code === 'non-finite-result') {
+    return {
+      ok: false,
+      error: createError('non-finite-result', decimalResult.error.message, position),
     };
   }
 
   return {
     ok: false,
-    error: createError('non-finite-result', 'Expression result is not finite.', position),
+    error: createError('decimal-error', decimalResult.error.message, position),
   };
 }
 
@@ -549,12 +577,12 @@ function readNumber(
   }
 
   const raw = expression.slice(startPosition, position);
-  const value = Number(raw);
+  const decimal = createDecimal(raw);
 
-  if (!Number.isFinite(value)) {
+  if (!decimal.ok) {
     return {
       ok: false,
-      error: createError('invalid-number', `Invalid number "${raw}".`, startPosition),
+      error: createError('invalid-number', decimal.error.message, startPosition),
     };
   }
 
@@ -562,7 +590,7 @@ function readNumber(
     ok: true,
     token: {
       type: 'number',
-      value,
+      value: decimal.value,
       raw,
       position: startPosition,
     },
