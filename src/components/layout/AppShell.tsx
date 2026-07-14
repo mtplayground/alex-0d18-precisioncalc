@@ -1,5 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
+import { decimalToString } from '../../lib/decimal';
+import { resolveKeyboardInputAction, type KeyboardInputAction } from '../../lib/keyboard';
+import {
+  applyMemoryOperation,
+  createEmptyMemoryRegister,
+  hydrateMemoryRegister,
+  serializeMemoryRegister,
+  type MemoryOperation,
+  type MemoryRegisterState,
+} from '../../lib/memory';
 import {
   createDefaultCalculatorState,
   readPersistedCalculatorState,
@@ -8,12 +18,6 @@ import {
   type PersistedHistoryEntry,
   type PersistedModePreferences,
 } from '../../lib/storage';
-import {
-  createEmptyMemoryRegister,
-  hydrateMemoryRegister,
-  serializeMemoryRegister,
-  type MemoryRegisterState,
-} from '../../lib/memory';
 import { CoreArithmeticButtonGrid } from '../buttons/CoreArithmeticButtonGrid';
 import { MemoryRegisterControls } from '../buttons/MemoryRegisterControls';
 import { ModeToggleControls } from '../buttons/ModeToggleControls';
@@ -52,9 +56,15 @@ const currentExpression = '12 x 4 + 7';
 const currentResult = '55';
 
 const handleHistoryEntry = () => undefined;
-const handleCoreArithmeticButton = () => undefined;
-const handleScientificFunction = () => undefined;
-const handleMemoryRecall = () => undefined;
+const handleCoreArithmeticButton = (value?: unknown) => {
+  void value;
+};
+const handleScientificFunction = (value?: unknown) => {
+  void value;
+};
+const handleMemoryRecall = (value?: string) => {
+  void value;
+};
 
 export function AppShell() {
   const [persistentState] = useState(loadPersistentShellState);
@@ -62,9 +72,114 @@ export function AppShell() {
   const [memoryRegister, setMemoryRegister] = useState(persistentState.memory);
   const [modePreferences, setModePreferences] = useState(persistentState.preferences);
 
+  const handleAngleModeChange = useCallback((angleMode: PersistedModePreferences['angleMode']) => {
+    setModePreferences((current) => ({ ...current, angleMode }));
+  }, []);
+
+  const handleNotationModeChange = useCallback(
+    (notationMode: PersistedModePreferences['notationMode']) => {
+      setModePreferences((current) => ({ ...current, notationMode }));
+    },
+    [],
+  );
+
+  const handleToggleAngleMode = useCallback(() => {
+    setModePreferences((current) => ({
+      ...current,
+      angleMode: current.angleMode === 'deg' ? 'rad' : 'deg',
+    }));
+  }, []);
+
+  const handleToggleNotationMode = useCallback(() => {
+    setModePreferences((current) => ({
+      ...current,
+      notationMode: current.notationMode === 'standard' ? 'scientific' : 'standard',
+    }));
+  }, []);
+
+  const handleMemoryOperation = useCallback(
+    (operation: MemoryOperation) => {
+      const operand = operation === 'M+' || operation === 'M-' ? currentResult : undefined;
+      const result = applyMemoryOperation(operation, memoryRegister, operand);
+
+      if (!result.ok) {
+        return;
+      }
+
+      setMemoryRegister(result.state);
+
+      if (result.recalledValue) {
+        handleMemoryRecall(decimalToString(result.recalledValue));
+      }
+    },
+    [memoryRegister],
+  );
+
+  const dispatchKeyboardAction = useCallback(
+    (action: KeyboardInputAction) => {
+      if (action.type === 'core') {
+        handleCoreArithmeticButton(action.value);
+        return;
+      }
+
+      if (action.type === 'scientific') {
+        handleScientificFunction(action.value);
+        return;
+      }
+
+      if (action.type === 'memory') {
+        handleMemoryOperation(action.operation);
+        return;
+      }
+
+      if (action.type === 'angle-mode') {
+        handleAngleModeChange(action.value);
+        return;
+      }
+
+      if (action.type === 'notation-mode') {
+        handleNotationModeChange(action.value);
+        return;
+      }
+
+      if (action.type === 'toggle-angle-mode') {
+        handleToggleAngleMode();
+        return;
+      }
+
+      handleToggleNotationMode();
+    },
+    [
+      handleAngleModeChange,
+      handleMemoryOperation,
+      handleNotationModeChange,
+      handleToggleAngleMode,
+      handleToggleNotationMode,
+    ],
+  );
+
   useEffect(() => {
     persistShellState(historyEntries, memoryRegister, modePreferences);
   }, [historyEntries, memoryRegister, modePreferences]);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      const action = resolveKeyboardInputAction(event);
+
+      if (!action) {
+        return;
+      }
+
+      event.preventDefault();
+      dispatchKeyboardAction(action);
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [dispatchKeyboardAction]);
 
   return (
     <main className="min-h-dvh bg-zinc-950 text-zinc-50">
@@ -81,12 +196,8 @@ export function AppShell() {
           <ModeToggleControls
             angleMode={modePreferences.angleMode}
             notationMode={modePreferences.notationMode}
-            onAngleModeChange={(angleMode) =>
-              setModePreferences((current) => ({ ...current, angleMode }))
-            }
-            onNotationModeChange={(notationMode) =>
-              setModePreferences((current) => ({ ...current, notationMode }))
-            }
+            onAngleModeChange={handleAngleModeChange}
+            onNotationModeChange={handleNotationModeChange}
           />
         </header>
 
@@ -119,6 +230,7 @@ export function AppShell() {
                     currentValue={currentResult}
                     memory={memoryRegister}
                     onMemoryChange={setMemoryRegister}
+                    onMemoryOperation={handleMemoryOperation}
                     onRecallValue={handleMemoryRecall}
                   />
                 </ControlPanel>
