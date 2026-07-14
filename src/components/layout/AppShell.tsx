@@ -1,3 +1,5 @@
+import { PrimaryDisplay } from '../display/PrimaryDisplay';
+
 const historyRows = ['12 x 4', '48 + 7', '55 / 5'];
 
 const scientificZones = [
@@ -35,21 +37,12 @@ export function AppShell() {
 
         <section className="grid flex-1 gap-4 py-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="grid min-h-0 gap-4 lg:grid-rows-[auto_minmax(0,1fr)]">
-            <section
-              aria-label="Calculator display"
-              className="rounded-lg border border-white/10 bg-zinc-900 p-4 shadow-2xl shadow-black/30"
-            >
-              <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
-                <span>Display</span>
-                <span>Ready</span>
-              </div>
-              <div className="mt-6 overflow-hidden text-right font-mono text-5xl font-semibold tabular-nums text-white sm:text-6xl">
-                0
-              </div>
-              <div className="mt-3 truncate text-right font-mono text-sm text-zinc-500">
-                awaiting input
-              </div>
-            </section>
+            <PrimaryDisplay
+              expression="12 x 4 + 7"
+              pendingOperation="+"
+              result="55"
+              state="result"
+            />
 
             <section
               aria-label="Calculator controls"
