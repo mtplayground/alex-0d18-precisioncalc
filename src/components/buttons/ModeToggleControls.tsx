@@ -34,7 +34,7 @@ export function ModeToggleControls({
   return (
     <section
       aria-label="Calculator mode toggles"
-      className="grid gap-2 rounded border border-white/10 bg-zinc-900 p-1.5 text-xs font-semibold text-zinc-300 sm:grid-cols-2"
+      className="grid gap-2 rounded-[0.45rem] border border-white/10 bg-zinc-900 p-1.5 text-xs font-semibold text-zinc-300 shadow-inner shadow-white/5 sm:grid-cols-2"
     >
       <SegmentedControl
         ariaLabel="Angle mode"
@@ -76,9 +76,9 @@ function SegmentedControl<TValue extends string>({
           <button
             aria-label={option.ariaLabel}
             aria-pressed={isSelected}
-            className={`min-h-8 rounded px-2 py-1 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 ${
+            className={`min-h-8 rounded-[0.35rem] px-2 py-1 transition active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 ${
               isSelected
-                ? 'bg-cyan-400 text-zinc-950'
+                ? 'bg-cyan-400 text-zinc-950 shadow-inner shadow-white/30'
                 : 'text-zinc-400 hover:bg-white/10 hover:text-white'
             }`}
             key={option.value}
