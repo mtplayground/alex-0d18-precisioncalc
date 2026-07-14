@@ -2,6 +2,7 @@ export type PrimaryDisplayState = 'input' | 'pending' | 'result' | 'error';
 
 export interface PrimaryDisplayProps {
   expression: string;
+  errorMessage?: string | null;
   result: string;
   pendingOperation?: string | null;
   state?: PrimaryDisplayState;
@@ -22,6 +23,7 @@ const stateTone: Record<PrimaryDisplayState, string> = {
 };
 
 export function PrimaryDisplay({
+  errorMessage = null,
   expression,
   pendingOperation = null,
   result,
@@ -67,7 +69,16 @@ export function PrimaryDisplay({
       </div>
 
       <div className="mt-2 flex min-h-5 items-center justify-end">
-        {pendingOperation ? (
+        {state === 'error' && errorMessage ? (
+          <span
+            className="max-w-full truncate rounded border border-red-300/40 bg-red-300/10 px-2 py-1 text-right text-xs font-semibold text-red-100"
+            data-testid="display-error"
+            role="alert"
+            title={errorMessage}
+          >
+            {errorMessage}
+          </span>
+        ) : pendingOperation ? (
           <span className="rounded border border-amber-300/40 bg-amber-300/10 px-2 py-1 font-mono text-xs font-semibold text-amber-200">
             {pendingOperation}
           </span>
