@@ -14,6 +14,7 @@ import {
   type MemoryRegisterState,
 } from '../../lib/memory';
 import { CoreArithmeticButtonGrid } from '../buttons/CoreArithmeticButtonGrid';
+import { ScientificFunctionCluster } from '../buttons/ScientificFunctionCluster';
 import { HistoryTrail, type HistoryTrailEntry } from '../display/HistoryTrail';
 import { PrimaryDisplay } from '../display/PrimaryDisplay';
 
@@ -44,15 +45,11 @@ const seedHistoryEntries: PersistedHistoryEntry[] = [
   },
 ];
 
-const scientificZones = [
-  ['sin', 'cos', 'tan', 'log'],
-  ['ln', 'x^2', 'sqrt', 'x^y'],
-];
-
 const memoryZones = ['MC', 'MR', 'M+', 'M-'];
 
 const handleHistoryEntry = () => undefined;
 const handleCoreArithmeticButton = () => undefined;
+const handleScientificFunction = () => undefined;
 
 export function AppShell() {
   const [persistentState] = useState(loadPersistentShellState);
@@ -102,21 +99,13 @@ export function AppShell() {
             >
               <div className="grid gap-4">
                 <ControlPanel title="Scientific">
-                  <div className="grid grid-cols-4 gap-2">
-                    {scientificZones.flat().map((label) => (
-                      <ShellKey key={label} tone="secondary">
-                        {label}
-                      </ShellKey>
-                    ))}
-                  </div>
+                  <ScientificFunctionCluster onFunctionPress={handleScientificFunction} />
                 </ControlPanel>
 
                 <ControlPanel title="Memory">
                   <div className="grid grid-cols-4 gap-2">
                     {memoryZones.map((label) => (
-                      <ShellKey key={label} tone="memory">
-                        {label}
-                      </ShellKey>
+                      <ShellKey key={label}>{label}</ShellKey>
                     ))}
                   </div>
                 </ControlPanel>
@@ -144,15 +133,10 @@ function ControlPanel({ children, title }: { children: React.ReactNode; title: s
   );
 }
 
-function ShellKey({ children, tone }: { children: React.ReactNode; tone: 'secondary' | 'memory' }) {
-  const toneClass = {
-    secondary: 'border-zinc-700 bg-zinc-950 text-zinc-200',
-    memory: 'border-amber-300/50 bg-amber-300/15 text-amber-100',
-  }[tone];
-
+function ShellKey({ children }: { children: React.ReactNode }) {
   return (
     <button
-      className={`min-h-12 rounded-md border px-2 text-sm font-semibold tabular-nums transition ${toneClass}`}
+      className="min-h-12 rounded-md border border-amber-300/50 bg-amber-300/15 px-2 text-sm font-semibold text-amber-100 tabular-nums transition"
       disabled
       type="button"
     >
