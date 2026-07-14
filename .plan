@@ -1,0 +1,64 @@
+# Precision Calculator Architecture Plan
+
+## Product Scope
+
+Build the product named in the GitHub issues as a single-screen scientific precision calculator with persistent history, memory registers, keyboard support, and deployment-ready frontend tooling.
+
+## Project Shape
+
+- Framework: React + TypeScript with Vite.
+- Styling: Tailwind CSS, with a small global stylesheet for app-level resets and reusable CSS variables if needed.
+- Tooling: ESLint, Prettier, TypeScript strict mode, Vitest, React Testing Library, and Playwright for end-to-end coverage.
+- Runtime: static frontend app unless a later deployment issue requires a minimal server.
+
+## Proposed File Organization
+
+- `src/main.tsx`: React entry point.
+- `src/App.tsx`: top-level app composition.
+- `src/styles/index.css`: Tailwind directives and base styling.
+- `src/types/calculator.ts`: shared domain types for angle mode, display state, history entries, memory state, parser tokens, and evaluation results.
+- `src/lib/storage.ts`: local storage helpers with typed read/write, migrations, and safe fallbacks.
+- `src/lib/decimal/`: precision-safe decimal arithmetic adapter and formatting helpers.
+- `src/lib/calculation/`: tokenizer, parser, evaluator, scientific functions, operator metadata, and error types.
+- `src/state/`: React hooks or reducers for calculator input, history, memory, modes, and persistence wiring.
+- `src/components/display/`: primary display and history trail.
+- `src/components/buttons/`: core arithmetic grid, scientific function cluster, memory controls, and mode toggles.
+- `src/components/layout/`: app shell and responsive calculator frame.
+- `src/input/keyboard.ts`: keyboard mapping and normalization.
+- `src/test/`: shared test fixtures and render helpers.
+- `e2e/`: Playwright workflow tests.
+
+## Shared Types
+
+- `AngleMode`: `"deg" | "rad"`.
+- `NotationMode`: `"standard" | "scientific"` or equivalent display preference.
+- `CalculatorError`: parse, math-domain, divide-by-zero, overflow, and invalid-input categories.
+- `CalculationResult`: decimal value, formatted display, optional error, and source expression.
+- `HistoryEntry`: id, expression, result, timestamp, angle mode, and notation mode.
+- `MemoryState`: decimal value plus derived `hasValue` flag.
+- `ButtonDefinition`: id, label, aria label, role, keyboard aliases, and command payload.
+
+## Issue Dependencies
+
+- Issue #1 enables all implementation and test work.
+- Issue #2 establishes the shell used by UI issues #9-#18.
+- Issue #3 should land before persistence issues #11 and state-heavy components.
+- Issues #4-#8 define the calculation engine and should precede most UI wiring.
+- Issues #9-#15 can be built once the shell, shared types, and command model exist.
+- Issue #16 depends on stable calculator commands from the button work.
+- Issues #17-#18 polish layout after core controls and display are functional.
+- Issues #19-#20 depend on the engine, memory, history, and persistence modules.
+- Issue #21 depends on the complete user workflow.
+- Issue #22 should review the finished engine and UI error states.
+- Issue #23 should happen last after build, tests, and runtime behavior are stable.
+
+## Key Design Decisions
+
+- Keep the calculation engine framework-independent so it can be unit tested without React.
+- Represent user actions as typed commands shared by buttons and keyboard input.
+- Use a decimal library or decimal adapter boundary for all arithmetic so native floating-point behavior is isolated.
+- Store history and memory as serializable strings rather than JavaScript numbers to preserve precision.
+- Treat display formatting separately from evaluation so scientific notation and degree/radian mode remain explicit.
+- Prefer reducer-based state for calculator behavior because input, memory, history, modes, and errors are tightly related.
+- Persist only durable user state: history, memory, mode settings, and display preferences.
+- Keep the first implementation static and client-only; add server logic only if deployment requirements later demand it.
