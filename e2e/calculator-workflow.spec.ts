@@ -59,4 +59,32 @@ test.describe('calculator workflow', () => {
     await expect(expression).toHaveText('sin(90)');
     await expect(page.getByRole('button', { name: 'Reuse result 1e+0' })).toBeVisible();
   });
+
+  test('shows clear error states for invalid arithmetic and scientific domains', async ({
+    page,
+  }) => {
+    const result = page.getByTestId('display-result');
+    const error = page.getByTestId('display-error');
+
+    await page.getByRole('button', { exact: true, name: 'Clear' }).click();
+    await page.getByRole('button', { exact: true, name: 'Eight' }).click();
+    await page.getByRole('button', { exact: true, name: 'Divide' }).click();
+    await page.getByRole('button', { exact: true, name: 'Zero' }).click();
+    await page.getByRole('button', { exact: true, name: 'Equals' }).click();
+
+    await expect(result).toHaveText('Error');
+    await expect(error).toHaveText('Cannot divide by zero.');
+
+    await page.getByRole('button', { exact: true, name: 'Clear' }).click();
+    await page.getByRole('button', { exact: true, name: 'Zero' }).click();
+    await page.getByRole('button', { exact: true, name: 'Subtract' }).click();
+    await page.getByRole('button', { exact: true, name: 'Nine' }).click();
+    await page.getByRole('button', { exact: true, name: 'Equals' }).click();
+    await expect(result).toHaveText('-9');
+
+    await page.getByRole('button', { name: 'Square root' }).click();
+
+    await expect(result).toHaveText('Error');
+    await expect(error).toHaveText('sqrt input must be greater than or equal to 0.');
+  });
 });

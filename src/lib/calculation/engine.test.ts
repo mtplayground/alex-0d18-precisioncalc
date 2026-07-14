@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyScientificFunction,
   cosDecimal,
+  expDecimal,
   log10Decimal,
   lnDecimal,
   powerDecimal,
@@ -106,6 +107,7 @@ describe('calculation expression engine', () => {
     expectEvaluationError('4 / 0', 'divide-by-zero');
     expectEvaluationError('(1 + 2', 'unclosed-parenthesis');
     expectEvaluationError('2 $ 3', 'invalid-token');
+    expectEvaluationError('1e10000000000000000', 'invalid-number');
   });
 });
 
@@ -154,8 +156,10 @@ describe('scientific functions', () => {
   });
 
   it('returns domain and arity errors for invalid scientific operations', () => {
+    expectScientificError(log10Decimal(decimal('-1')), 'domain-error');
     expectScientificError(sqrtDecimal(decimal('-1')), 'domain-error');
     expectScientificError(rootDecimal(decimal('-16'), decimal('2')), 'domain-error');
+    expectScientificError(expDecimal(decimal('100000000000000000')), 'decimal-error');
     expectScientificError(applyScientificFunction('pow', [decimal('2')]), 'invalid-arity');
   });
 });

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { applyScientificFunction, evaluateExpression } from '../../lib/calculation';
+import type { ExpressionError, ScientificFunctionError } from '../../lib/calculation';
 import { createDecimal, decimalToString, DecimalEngine } from '../../lib/decimal';
 import type { DecimalValue } from '../../lib/decimal';
 import { formatDecimalValue } from '../../lib/formatting';
@@ -10,6 +11,7 @@ import {
   createEmptyMemoryRegister,
   hydrateMemoryRegister,
   serializeMemoryRegister,
+  type MemoryRegisterError,
   type MemoryOperation,
   type MemoryRegisterState,
 } from '../../lib/memory';
@@ -77,6 +79,7 @@ export function AppShell() {
   const [memoryRegister, setMemoryRegister] = useState(persistentState.memory);
   const [modePreferences, setModePreferences] = useState(persistentState.preferences);
   const [displayValue, setDisplayValue] = useState('0');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [expression, setExpression] = useState('');
   const [displayState, setDisplayState] = useState<PrimaryDisplayState>('input');
   const [pendingOperation, setPendingOperation] = useState<string | null>(null);
@@ -128,10 +131,18 @@ export function AppShell() {
     [modePreferences.angleMode, modePreferences.notationMode],
   );
 
-  const setErrorDisplay = useCallback((message: string) => {
-    setDisplayValue(message);
+  const setErrorDisplay = useCallback((message: string, nextExpression?: string) => {
+    setDisplayValue('Error');
+    setErrorMessage(message);
+    if (nextExpression !== undefined) {
+      setExpression(nextExpression);
+    }
     setDisplayState('error');
     setPendingOperation(null);
+  }, []);
+
+  const clearErrorDisplay = useCallback(() => {
+    setErrorMessage(null);
   }, []);
 
   const handleCoreArithmeticButton = useCallback(
@@ -149,6 +160,7 @@ export function AppShell() {
 
           return `${current}${value}`;
         });
+        clearErrorDisplay();
         setDisplayState('input');
         return;
       }
@@ -161,12 +173,14 @@ export function AppShell() {
 
           return current.includes('.') ? current : `${current}.`;
         });
+        clearErrorDisplay();
         setDisplayState('input');
         return;
       }
 
       if (value === 'clear') {
         setDisplayValue('0');
+        clearErrorDisplay();
         setExpression('');
         setDisplayState('input');
         setPendingOperation(null);
@@ -176,14 +190,23 @@ export function AppShell() {
       const nextOperator = operatorExpression[value];
 
       if (nextOperator) {
+        if (displayState === 'error') {
+          return;
+        }
+
         const baseExpression =
           displayState === 'result' || !expression.trim()
             ? displayValue
             : `${expression.replace(/[+\-×÷]\s*$/, '').trim()} ${displayValue}`;
 
         setExpression(`${baseExpression} ${nextOperator}`);
+        clearErrorDisplay();
         setPendingOperation(operatorDisplay[value] ?? nextOperator);
         setDisplayState('pending');
+        return;
+      }
+
+      if (displayState === 'error') {
         return;
       }
 
@@ -194,7 +217,7 @@ export function AppShell() {
       const result = evaluateExpression(expressionToEvaluate);
 
       if (!result.ok) {
-        setErrorDisplay(result.error.message);
+        setErrorDisplay(formatExpressionError(result.error), expressionToEvaluate);
         return;
       }
 
@@ -202,11 +225,20 @@ export function AppShell() {
 
       setExpression(expressionToEvaluate);
       setDisplayValue(nextResult);
+      clearErrorDisplay();
       setDisplayState('result');
       setPendingOperation(null);
       addHistoryEntry(expressionToEvaluate, nextResult);
     },
-    [addHistoryEntry, displayState, displayValue, expression, formattedResult, setErrorDisplay],
+    [
+      addHistoryEntry,
+      clearErrorDisplay,
+      displayState,
+      displayValue,
+      expression,
+      formattedResult,
+      setErrorDisplay,
+    ],
   );
 
   const handleScientificFunction = useCallback(
@@ -214,14 +246,14 @@ export function AppShell() {
       const parsedValue = createDecimal(displayValue);
 
       if (!parsedValue.ok) {
-        setErrorDisplay(parsedValue.error.message);
+        setErrorDisplay('Enter a valid number before applying a scientific function.');
         return;
       }
 
       const operation = resolveScientificOperation(value, parsedValue.value);
 
       if (!operation) {
-        setErrorDisplay(`${value} is not available for direct evaluation.`);
+        setErrorDisplay(`${value} needs a second operand before it can be evaluated.`);
         return;
       }
 
@@ -230,7 +262,7 @@ export function AppShell() {
       });
 
       if (!result.ok) {
-        setErrorDisplay(result.error.message);
+        setErrorDisplay(formatScientificError(result.error), `${operation.label}(${displayValue})`);
         return;
       }
 
@@ -239,16 +271,25 @@ export function AppShell() {
 
       setExpression(nextExpression);
       setDisplayValue(nextResult);
+      clearErrorDisplay();
       setDisplayState('result');
       setPendingOperation(null);
       addHistoryEntry(nextExpression, nextResult);
     },
-    [addHistoryEntry, displayValue, formattedResult, modePreferences.angleMode, setErrorDisplay],
+    [
+      addHistoryEntry,
+      clearErrorDisplay,
+      displayValue,
+      formattedResult,
+      modePreferences.angleMode,
+      setErrorDisplay,
+    ],
   );
 
   const handleHistoryEntry = useCallback((entry: HistoryTrailEntry) => {
     setExpression(entry.expression);
     setDisplayValue(entry.result);
+    setErrorMessage(null);
     setDisplayState('result');
     setPendingOperation(null);
   }, []);
@@ -256,12 +297,14 @@ export function AppShell() {
   const handleHistoryResultReuse = useCallback((entry: HistoryTrailEntry) => {
     setExpression('');
     setDisplayValue(entry.result);
+    setErrorMessage(null);
     setDisplayState('result');
     setPendingOperation(null);
   }, []);
 
   const handleMemoryRecall = useCallback((value: string) => {
     setDisplayValue(value);
+    setErrorMessage(null);
     setDisplayState('result');
     setPendingOperation(null);
   }, []);
@@ -272,16 +315,18 @@ export function AppShell() {
       const result = applyMemoryOperation(operation, memoryRegister, operand);
 
       if (!result.ok) {
+        setErrorDisplay(formatMemoryError(result.error));
         return;
       }
 
+      setErrorMessage(null);
       setMemoryRegister(result.state);
 
       if (result.recalledValue) {
         handleMemoryRecall(decimalToString(result.recalledValue));
       }
     },
-    [displayValue, handleMemoryRecall, memoryRegister],
+    [displayValue, handleMemoryRecall, memoryRegister, setErrorDisplay],
   );
 
   const dispatchKeyboardAction = useCallback(
@@ -382,6 +427,7 @@ export function AppShell() {
             />
 
             <PrimaryDisplay
+              errorMessage={errorMessage}
               expression={expression}
               pendingOperation={pendingOperation}
               result={displayValue}
@@ -481,6 +527,53 @@ function formatHistoryTimestamp(value: string): string {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date);
+}
+
+function formatExpressionError(error: ExpressionError): string {
+  switch (error.code) {
+    case 'divide-by-zero':
+      return 'Cannot divide by zero.';
+    case 'non-finite-result':
+      return 'Result is outside the supported range.';
+    case 'invalid-number':
+      return error.message.includes('finite')
+        ? 'Value is outside the supported range.'
+        : 'Enter a valid number.';
+    case 'invalid-token':
+      return 'Expression contains an unsupported character.';
+    case 'unclosed-parenthesis':
+      return 'Add a closing parenthesis before evaluating.';
+    case 'unexpected-token':
+      return 'Expression is incomplete or out of order.';
+    case 'empty-expression':
+      return 'Enter a calculation before pressing equals.';
+    case 'decimal-error':
+      return 'Decimal calculation failed.';
+  }
+}
+
+function formatScientificError(error: ScientificFunctionError): string {
+  switch (error.code) {
+    case 'domain-error':
+      return error.message;
+    case 'invalid-arity':
+      return 'This function needs the correct number of inputs.';
+    case 'decimal-error':
+      return error.message.includes('finite')
+        ? 'Result is outside the supported range.'
+        : 'Scientific calculation failed.';
+  }
+}
+
+function formatMemoryError(error: MemoryRegisterError): string {
+  switch (error.code) {
+    case 'missing-operand':
+      return 'Memory operation needs a value on the display.';
+    case 'invalid-value':
+      return 'Memory operation needs a valid displayed number.';
+    case 'decimal-error':
+      return 'Memory operation result is outside the supported range.';
+  }
 }
 
 function resolveScientificOperation(
