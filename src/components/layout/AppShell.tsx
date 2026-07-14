@@ -14,6 +14,7 @@ import {
   type MemoryRegisterState,
 } from '../../lib/memory';
 import { CoreArithmeticButtonGrid } from '../buttons/CoreArithmeticButtonGrid';
+import { MemoryRegisterControls } from '../buttons/MemoryRegisterControls';
 import { ScientificFunctionCluster } from '../buttons/ScientificFunctionCluster';
 import { HistoryTrail, type HistoryTrailEntry } from '../display/HistoryTrail';
 import { PrimaryDisplay } from '../display/PrimaryDisplay';
@@ -45,16 +46,18 @@ const seedHistoryEntries: PersistedHistoryEntry[] = [
   },
 ];
 
-const memoryZones = ['MC', 'MR', 'M+', 'M-'];
+const currentExpression = '12 x 4 + 7';
+const currentResult = '55';
 
 const handleHistoryEntry = () => undefined;
 const handleCoreArithmeticButton = () => undefined;
 const handleScientificFunction = () => undefined;
+const handleMemoryRecall = () => undefined;
 
 export function AppShell() {
   const [persistentState] = useState(loadPersistentShellState);
   const [historyEntries] = useState(persistentState.history);
-  const [memoryRegister] = useState(persistentState.memory);
+  const [memoryRegister, setMemoryRegister] = useState(persistentState.memory);
 
   useEffect(() => {
     persistShellState(historyEntries, memoryRegister);
@@ -87,9 +90,9 @@ export function AppShell() {
             />
 
             <PrimaryDisplay
-              expression="12 x 4 + 7"
+              expression={currentExpression}
               pendingOperation="+"
-              result="55"
+              result={currentResult}
               state="result"
             />
 
@@ -103,11 +106,12 @@ export function AppShell() {
                 </ControlPanel>
 
                 <ControlPanel title="Memory">
-                  <div className="grid grid-cols-4 gap-2">
-                    {memoryZones.map((label) => (
-                      <ShellKey key={label}>{label}</ShellKey>
-                    ))}
-                  </div>
+                  <MemoryRegisterControls
+                    currentValue={currentResult}
+                    memory={memoryRegister}
+                    onMemoryChange={setMemoryRegister}
+                    onRecallValue={handleMemoryRecall}
+                  />
                 </ControlPanel>
               </div>
 
@@ -130,18 +134,6 @@ function ControlPanel({ children, title }: { children: React.ReactNode; title: s
       </h2>
       {children}
     </section>
-  );
-}
-
-function ShellKey({ children }: { children: React.ReactNode }) {
-  return (
-    <button
-      className="min-h-12 rounded-md border border-amber-300/50 bg-amber-300/15 px-2 text-sm font-semibold text-amber-100 tabular-nums transition"
-      disabled
-      type="button"
-    >
-      {children}
-    </button>
   );
 }
 
