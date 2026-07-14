@@ -9,6 +9,7 @@ export interface MemoryRegisterControlsProps {
   currentValue: string;
   memory: MemoryRegisterState;
   onMemoryChange: (memory: MemoryRegisterState) => void;
+  onMemoryOperation?: (operation: MemoryOperation) => void;
   onOperationError?: (message: string) => void;
   onRecallValue?: (value: string) => void;
 }
@@ -46,6 +47,7 @@ export function MemoryRegisterControls({
   currentValue,
   memory,
   onMemoryChange,
+  onMemoryOperation,
   onOperationError,
   onRecallValue,
 }: MemoryRegisterControlsProps) {
@@ -87,7 +89,7 @@ export function MemoryRegisterControls({
             aria-label={button.ariaLabel}
             className="min-h-12 rounded-md border border-amber-300/50 bg-zinc-950/80 px-2 text-sm font-semibold text-amber-100 tabular-nums transition hover:bg-amber-300/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
             key={button.operation}
-            onClick={() => handleMemoryOperation(button.operation)}
+            onClick={() => (onMemoryOperation ?? handleMemoryOperation)(button.operation)}
             type="button"
           >
             {button.label}
