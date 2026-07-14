@@ -43,17 +43,24 @@ export function PrimaryDisplay({
       <div className="mt-2 grid min-h-0 content-end gap-2">
         <div className="min-h-5 overflow-hidden text-right font-mono text-sm text-zinc-400">
           {normalizedExpression ? (
-            <span className="block truncate" title={normalizedExpression}>
+            <span
+              className="block truncate"
+              data-testid="display-expression"
+              title={normalizedExpression}
+            >
               {normalizedExpression}
             </span>
           ) : (
-            <span className="text-zinc-600">0</span>
+            <span className="text-zinc-600" data-testid="display-expression">
+              0
+            </span>
           )}
         </div>
 
         <div
           aria-live="polite"
           className="overflow-x-auto text-right font-mono text-4xl font-semibold leading-tight text-white tabular-nums sm:text-6xl"
+          data-testid="display-result"
         >
           {normalizedResult}
         </div>

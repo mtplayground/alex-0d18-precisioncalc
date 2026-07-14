@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { decimalToString } from '../../lib/decimal';
+import { applyScientificFunction, evaluateExpression } from '../../lib/calculation';
+import { createDecimal, decimalToString, DecimalEngine } from '../../lib/decimal';
+import type { DecimalValue } from '../../lib/decimal';
+import { formatDecimalValue } from '../../lib/formatting';
 import { resolveKeyboardInputAction, type KeyboardInputAction } from '../../lib/keyboard';
 import {
   applyMemoryOperation,
@@ -18,12 +21,14 @@ import {
   type PersistedHistoryEntry,
   type PersistedModePreferences,
 } from '../../lib/storage';
+import type { CoreArithmeticButtonValue } from '../buttons/CoreArithmeticButtonGrid';
 import { CoreArithmeticButtonGrid } from '../buttons/CoreArithmeticButtonGrid';
 import { MemoryRegisterControls } from '../buttons/MemoryRegisterControls';
 import { ModeToggleControls } from '../buttons/ModeToggleControls';
+import type { ScientificFunctionValue } from '../buttons/ScientificFunctionCluster';
 import { ScientificFunctionCluster } from '../buttons/ScientificFunctionCluster';
 import { HistoryTrail, type HistoryTrailEntry } from '../display/HistoryTrail';
-import { PrimaryDisplay } from '../display/PrimaryDisplay';
+import { PrimaryDisplay, type PrimaryDisplayState } from '../display/PrimaryDisplay';
 
 const seedHistoryEntries: PersistedHistoryEntry[] = [
   {
@@ -52,25 +57,35 @@ const seedHistoryEntries: PersistedHistoryEntry[] = [
   },
 ];
 
-const currentExpression = '12 x 4 + 7';
-const currentResult = '55';
+const operatorExpression: Partial<Record<CoreArithmeticButtonValue, string>> = {
+  add: '+',
+  subtract: '-',
+  multiply: '×',
+  divide: '÷',
+};
 
-const handleHistoryEntry = () => undefined;
-const handleCoreArithmeticButton = (value?: unknown) => {
-  void value;
-};
-const handleScientificFunction = (value?: unknown) => {
-  void value;
-};
-const handleMemoryRecall = (value?: string) => {
-  void value;
+const operatorDisplay: Partial<Record<CoreArithmeticButtonValue, string>> = {
+  add: '+',
+  subtract: '−',
+  multiply: '×',
+  divide: '÷',
 };
 
 export function AppShell() {
   const [persistentState] = useState(loadPersistentShellState);
-  const [historyEntries] = useState(persistentState.history);
+  const [historyEntries, setHistoryEntries] = useState(persistentState.history);
   const [memoryRegister, setMemoryRegister] = useState(persistentState.memory);
   const [modePreferences, setModePreferences] = useState(persistentState.preferences);
+  const [displayValue, setDisplayValue] = useState('0');
+  const [expression, setExpression] = useState('');
+  const [displayState, setDisplayState] = useState<PrimaryDisplayState>('input');
+  const [pendingOperation, setPendingOperation] = useState<string | null>(null);
+
+  const formattedResult = useCallback(
+    (value: Parameters<typeof formatDecimalValue>[0]) =>
+      formatDecimalValue(value, { notationMode: modePreferences.notationMode }),
+    [modePreferences.notationMode],
+  );
 
   const handleAngleModeChange = useCallback((angleMode: PersistedModePreferences['angleMode']) => {
     setModePreferences((current) => ({ ...current, angleMode }));
@@ -97,9 +112,163 @@ export function AppShell() {
     }));
   }, []);
 
+  const addHistoryEntry = useCallback(
+    (nextExpression: string, nextResult: string) => {
+      const nextEntry: PersistedHistoryEntry = {
+        id: `history-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        expression: nextExpression,
+        result: nextResult,
+        createdAt: new Date().toISOString(),
+        angleMode: modePreferences.angleMode,
+        notationMode: modePreferences.notationMode,
+      };
+
+      setHistoryEntries((current) => [nextEntry, ...current].slice(0, 20));
+    },
+    [modePreferences.angleMode, modePreferences.notationMode],
+  );
+
+  const setErrorDisplay = useCallback((message: string) => {
+    setDisplayValue(message);
+    setDisplayState('error');
+    setPendingOperation(null);
+  }, []);
+
+  const handleCoreArithmeticButton = useCallback(
+    (value: CoreArithmeticButtonValue) => {
+      if (/^[0-9]$/.test(value)) {
+        setDisplayValue((current) => {
+          if (
+            displayState === 'result' ||
+            displayState === 'pending' ||
+            displayState === 'error' ||
+            current === '0'
+          ) {
+            return value;
+          }
+
+          return `${current}${value}`;
+        });
+        setDisplayState('input');
+        return;
+      }
+
+      if (value === 'decimal') {
+        setDisplayValue((current) => {
+          if (displayState === 'result' || displayState === 'pending' || displayState === 'error') {
+            return '0.';
+          }
+
+          return current.includes('.') ? current : `${current}.`;
+        });
+        setDisplayState('input');
+        return;
+      }
+
+      if (value === 'clear') {
+        setDisplayValue('0');
+        setExpression('');
+        setDisplayState('input');
+        setPendingOperation(null);
+        return;
+      }
+
+      const nextOperator = operatorExpression[value];
+
+      if (nextOperator) {
+        const baseExpression =
+          displayState === 'result' || !expression.trim()
+            ? displayValue
+            : `${expression.replace(/[+\-×÷]\s*$/, '').trim()} ${displayValue}`;
+
+        setExpression(`${baseExpression} ${nextOperator}`);
+        setPendingOperation(operatorDisplay[value] ?? nextOperator);
+        setDisplayState('pending');
+        return;
+      }
+
+      const trimmedExpression = expression.trim();
+      const expressionToEvaluate = /[+\-×÷]$/.test(trimmedExpression)
+        ? `${trimmedExpression} ${displayValue}`
+        : trimmedExpression || displayValue;
+      const result = evaluateExpression(expressionToEvaluate);
+
+      if (!result.ok) {
+        setErrorDisplay(result.error.message);
+        return;
+      }
+
+      const nextResult = formattedResult(result.value);
+
+      setExpression(expressionToEvaluate);
+      setDisplayValue(nextResult);
+      setDisplayState('result');
+      setPendingOperation(null);
+      addHistoryEntry(expressionToEvaluate, nextResult);
+    },
+    [addHistoryEntry, displayState, displayValue, expression, formattedResult, setErrorDisplay],
+  );
+
+  const handleScientificFunction = useCallback(
+    (value: ScientificFunctionValue) => {
+      const parsedValue = createDecimal(displayValue);
+
+      if (!parsedValue.ok) {
+        setErrorDisplay(parsedValue.error.message);
+        return;
+      }
+
+      const operation = resolveScientificOperation(value, parsedValue.value);
+
+      if (!operation) {
+        setErrorDisplay(`${value} is not available for direct evaluation.`);
+        return;
+      }
+
+      const result = applyScientificFunction(operation.name, operation.args, {
+        angleMode: modePreferences.angleMode,
+      });
+
+      if (!result.ok) {
+        setErrorDisplay(result.error.message);
+        return;
+      }
+
+      const nextResult = formattedResult(result.value);
+      const nextExpression = `${operation.label}(${displayValue})`;
+
+      setExpression(nextExpression);
+      setDisplayValue(nextResult);
+      setDisplayState('result');
+      setPendingOperation(null);
+      addHistoryEntry(nextExpression, nextResult);
+    },
+    [addHistoryEntry, displayValue, formattedResult, modePreferences.angleMode, setErrorDisplay],
+  );
+
+  const handleHistoryEntry = useCallback((entry: HistoryTrailEntry) => {
+    setExpression(entry.expression);
+    setDisplayValue(entry.result);
+    setDisplayState('result');
+    setPendingOperation(null);
+  }, []);
+
+  const handleHistoryResultReuse = useCallback((entry: HistoryTrailEntry) => {
+    setExpression('');
+    setDisplayValue(entry.result);
+    setDisplayState('result');
+    setPendingOperation(null);
+  }, []);
+
+  const handleMemoryRecall = useCallback((value: string) => {
+    setDisplayValue(value);
+    setDisplayState('result');
+    setPendingOperation(null);
+  }, []);
+
   const handleMemoryOperation = useCallback(
     (operation: MemoryOperation) => {
-      const operand = operation === 'M+' || operation === 'M-' ? currentResult : undefined;
+      const operand = operation === 'M+' || operation === 'M-' ? displayValue : undefined;
       const result = applyMemoryOperation(operation, memoryRegister, operand);
 
       if (!result.ok) {
@@ -112,7 +281,7 @@ export function AppShell() {
         handleMemoryRecall(decimalToString(result.recalledValue));
       }
     },
-    [memoryRegister],
+    [displayValue, handleMemoryRecall, memoryRegister],
   );
 
   const dispatchKeyboardAction = useCallback(
@@ -151,8 +320,10 @@ export function AppShell() {
     },
     [
       handleAngleModeChange,
+      handleCoreArithmeticButton,
       handleMemoryOperation,
       handleNotationModeChange,
+      handleScientificFunction,
       handleToggleAngleMode,
       handleToggleNotationMode,
     ],
@@ -207,14 +378,14 @@ export function AppShell() {
               entries={historyEntries.map(historyEntryToTrailEntry)}
               maxVisible={2}
               onRecallEntry={handleHistoryEntry}
-              onReuseResult={handleHistoryEntry}
+              onReuseResult={handleHistoryResultReuse}
             />
 
             <PrimaryDisplay
-              expression={currentExpression}
-              pendingOperation="+"
-              result={currentResult}
-              state="result"
+              expression={expression}
+              pendingOperation={pendingOperation}
+              result={displayValue}
+              state={displayState}
             />
 
             <section
@@ -228,7 +399,7 @@ export function AppShell() {
 
                 <ControlPanel title="Memory">
                   <MemoryRegisterControls
-                    currentValue={currentResult}
+                    currentValue={displayValue}
                     memory={memoryRegister}
                     onMemoryChange={setMemoryRegister}
                     onMemoryOperation={handleMemoryOperation}
@@ -310,4 +481,48 @@ function formatHistoryTimestamp(value: string): string {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date);
+}
+
+function resolveScientificOperation(
+  value: ScientificFunctionValue,
+  currentValue: DecimalValue,
+): {
+  args: DecimalValue[];
+  label: string;
+  name: Parameters<typeof applyScientificFunction>[0];
+} | null {
+  switch (value) {
+    case 'sin':
+    case 'cos':
+    case 'tan':
+    case 'asin':
+    case 'acos':
+    case 'atan':
+    case 'log':
+    case 'ln':
+    case 'exp':
+    case 'sqrt':
+      return { args: [currentValue], label: value, name: value };
+    case 'pow2':
+      return {
+        args: [currentValue, new DecimalEngine(2)],
+        label: 'square',
+        name: 'pow',
+      };
+    case 'pow10':
+      return {
+        args: [new DecimalEngine(10), currentValue],
+        label: '10^',
+        name: 'pow',
+      };
+    case 'cbrt':
+      return {
+        args: [currentValue, new DecimalEngine(3)],
+        label: 'cbrt',
+        name: 'root',
+      };
+    case 'pow':
+    case 'root':
+      return null;
+  }
 }
